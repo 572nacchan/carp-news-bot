@@ -23,6 +23,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }} # Re-run時も古いコミットではなく最新のmain（posted.json）を使う
 
       - uses: actions/setup-python@v7
         with:
@@ -53,5 +55,6 @@ jobs:
             echo "変更なし"
           else
             git commit -m "chore: 投稿済み記事を更新"
+            git pull --rebase -X theirs || { git rebase --abort; echo "posted.json の取り込みに失敗"; exit 1; }
             git push
           fi
