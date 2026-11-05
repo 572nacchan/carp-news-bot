@@ -2,7 +2,7 @@ name: post carp news
 
 on:
   schedule:
-    - cron: "7 * * * *" # 毎時7分（UTC基準。GitHub側の都合で数分〜十数分遅れることあり）
+    - cron: "23 * * * *" # 毎時23分。毎時0分付近はGitHub側が混んで遅延・スキップされやすいので避ける
   workflow_dispatch:
     inputs:
       dry_run:
