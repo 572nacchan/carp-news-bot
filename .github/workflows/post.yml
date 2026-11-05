@@ -1,0 +1,57 @@
+name: post carp news
+
+on:
+  schedule:
+    - cron: "7 * * * *" # 毎時7分（UTC基準。GitHub側の都合で数分〜十数分遅れることあり）
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "投稿せずに確認だけする"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: carp-news-bot
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Run bot
+        env:
+          BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
+          BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            python bot.py --dry-run
+          else
+            python bot.py
+          fi
+
+      - name: Commit posted.json
+        if: always() && inputs.dry_run != true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          [ -f posted.json ] || { echo "posted.json なし"; exit 0; }
+          git add posted.json
+          if git diff --cached --quiet; then
+            echo "変更なし"
+          else
+            git commit -m "chore: 投稿済み記事を更新"
+            git push
+          fi
